@@ -1,8 +1,8 @@
 /* eslint no-console: "off" */
 
-import { app } from "./app.ts";
+import { server } from "./app.ts";
 
 const PORT = parseInt(process.env.PORT || "3000");
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

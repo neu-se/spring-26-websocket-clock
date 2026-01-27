@@ -1,70 +1,47 @@
+import * as http from "node:http";
 import express from "express";
-import { z } from "zod";
-import { checkPassword } from "./auth.service.ts";
-import { TranscriptDB } from "./transcript.service.ts";
-import type { Transcript } from "./types.ts";
+import cors from "cors";
+import { Server } from "socket.io";
 
 export const app = express();
 app.use(express.json());
-const db = new TranscriptDB();
+app.use(cors());
 
-/* Handle API requests to create a new student record */
-const zAddStudentBody = z.object({
-  password: z.string(),
-  studentName: z.string(),
-});
-app.post("/api/addStudent", (req, res) => {
-  const body = zAddStudentBody.safeParse(req.body);
-  if (!body.success) {
-    res.status(400).send({ error: "Poorly-formed request" });
-  } else if (!checkPassword(body.data.password)) {
-    res.status(403).send({ error: "Invalid credentials" });
+export const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: [/.*/] } });
+let latest = new Date();
+let clockOn = true;
+let lastToggle = latest;
+
+setInterval(() => {
+  if (clockOn) {
+    latest = new Date();
+    io.emit("tick", latest.toISOString());
+  }
+}, 5000);
+
+app.post("/api/clockOn", (req, res) => {
+  if (clockOn) {
+    res.send({ toggled: false, since: lastToggle.toISOString() });
   } else {
-    const id = db.addStudent(body.data.studentName);
-    res.send({ studentID: id });
+    clockOn = !clockOn;
+    const newToggle = new Date();
+    const interval = newToggle.getTime() - lastToggle.getTime();
+    lastToggle = new Date();
+    io.emit("toggle", clockOn);
+    res.send({ toggled: true, interval });
   }
 });
 
-/* Handle API requests to add a grade to a student */
-const zAddGradeBody = z.object({
-  password: z.string(),
-  studentID: z.int().gte(0),
-  courseName: z.string(),
-  courseGrade: z.number().gte(0).lte(100),
-});
-app.post("/api/addGrade", (req, res) => {
-  try {
-    const body = zAddGradeBody.parse(req.body);
-    if (!checkPassword(body.password)) {
-      res.status(403).send({ error: "Invalid credentials" });
-    } else {
-      db.addGrade(body.studentID, body.courseName, body.courseGrade);
-      res.send({ success: true });
-    }
-  } catch (e) {
-    res.status(400).send({ error: "Poorly-formed request" });
-  }
-});
-
-/* Handle API requests to retrieve a student transcript */
-const zGetTranscriptBody = z.object({
-  password: z.string(),
-  studentID: z.int().gte(0),
-});
-app.post("/api/getTranscript", (req, res) => {
-  const body = zGetTranscriptBody.safeParse(req.body);
-  if (!body.success) {
-    res.status(400).send({ error: "Poorly-formed request" });
-  } else if (!checkPassword(body.data.password)) {
-    res.status(403).send({ error: "Invalid credentials" });
+app.post("/api/clockOff", (req, res) => {
+  if (!clockOn) {
+    res.send({ toggled: false, since: lastToggle.toISOString() });
   } else {
-    let response: { success: true; transcript: Transcript } | { success: false };
-    try {
-      const transcript = db.getTranscript(body.data.studentID);
-      response = { success: true, transcript };
-    } catch {
-      response = { success: false };
-    }
-    res.send(response);
+    clockOn = !clockOn;
+    const newToggle = new Date();
+    const interval = newToggle.getTime() - lastToggle.getTime();
+    lastToggle = new Date();
+    io.emit("toggle", clockOn);
+    res.send({ toggled: true, interval });
   }
 });
