@@ -2,20 +2,11 @@
 
 This is a template project for CS4530, Software Engineering at Northeastern.
 
-## Express Configuration
+## Express & Socket.io Configuration
 
-The functional content of this project is a minimal Express transcript API for
-a very simple transcript server.
-
-### Express API
-
-The Express server's API has the following endpoints:
-
-| Endpoint             | Method | Description                         |
-| -------------------- | ------ | ----------------------------------- |
-| `/api/addStudent`    | POST   | Add a new student                   |
-| `/api/addGrade`      | POST   | Add a grade for an existing student |
-| `/api/getTranscript` | POST   | Look up information for a student   |
+The functional content of this project is a small server that sends out an
+occasionally-updating time via a status REST endpoint and a Socket.io
+connection.
 
 ## Base configuration
 
