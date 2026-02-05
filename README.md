@@ -4,9 +4,10 @@ This is a template project for CS4530, Software Engineering at Northeastern.
 
 ## Express & Socket.io Configuration
 
-The functional content of this project is a small server that sends out an
-occasionally-updating time via a status REST endpoint and a Socket.io
-connection.
+This project is intended to be deployed in order to facilitate students
+writing simple clients for in-class activities. The functional content of this
+project is a small server that sends out an occasionally-updating time via a
+status REST endpoint and a Socket.io connection.
 
 ## Base configuration
 
