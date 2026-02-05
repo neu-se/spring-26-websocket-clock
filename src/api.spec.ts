@@ -1,105 +1,43 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import supertest, { type Response } from "supertest";
-import { app } from "./app.ts";
+import { app, emitTick, io } from "./app.ts";
 let response: Response;
 
-describe(`POST /api/addStudent`, () => {
-  it("should allow the addition of a new student", async () => {
-    response = await supertest(app)
-      .post(`/api/addStudent`)
-      .send({ password: "password", studentName: "Bob" });
+describe(`GET /api/status`, () => {
+  it("should return expected playload", async () => {
+    response = await supertest(app).get(`/api/status`);
     expect(response.status).toBe(200);
-    expect(response.body).toStrictEqual({ studentID: expect.any(Number) });
-  });
-
-  it("should reject invalid payloads", async () => {
-    response = await supertest(app).post(`/api/addStudent`).send({ whatever: false });
-    expect(response.status).toBe(400);
-  });
-
-  it("should reject invalid auth", async () => {
-    response = await supertest(app)
-      .post(`/api/addStudent`)
-      .send({ password: "wrong", studentName: "Bob" });
-    expect(response.status).toBe(403);
+    expect(response.body).toStrictEqual({
+      currentTick: expect.any(String),
+      currentCount: expect.any(Number),
+    });
   });
 });
 
-describe(`POST /api/addGrade`, () => {
-  let id: number;
-  beforeAll(async () => {
-    response = await supertest(app)
-      .post(`/api/addStudent`)
-      .send({ password: "password", studentName: "Bob" });
-    id = response.body.studentID;
-  });
-
-  it("should allow the addition of a new grade for an existing student", async () => {
-    response = await supertest(app)
-      .post(`/api/addGrade`)
-      .send({ password: "password", studentID: id, courseName: "Science", courseGrade: 71 });
+describe(`POST /api/poke`, () => {
+  it("should return success", async () => {
+    response = await supertest(app).post(`/api/poke`);
     expect(response.status).toBe(200);
     expect(response.body).toStrictEqual({ success: true });
   });
 
-  it("should reject invalid payloads", async () => {
-    response = await supertest(app)
-      .post(`/api/addGrade`)
-      .send({ password: "password", courseName: "Science", courseGrade: 71 });
-    expect(response.status).toBe(400);
-  });
-
-  it("should reject invalid auth", async () => {
-    response = await supertest(app)
-      .post(`/api/addGrade`)
-      .send({ password: "wrong", studentID: id, courseName: "Science", courseGrade: 71 });
-    expect(response.status).toBe(403);
+  it("should increment the count", async () => {
+    response = await supertest(app).get(`/api/status`);
+    const n1 = response.body.currentCount ?? -1;
+    await supertest(app).post(`/api/poke`);
+    response = await supertest(app).get(`/api/status`);
+    const n2 = response.body.currentCount ?? -1;
+    expect(n2).toBeGreaterThan(n1 as number);
   });
 });
 
-describe(`POST /api/getTranscript`, () => {
-  let id: number;
-  beforeAll(async () => {
-    response = await supertest(app)
-      .post(`/api/addStudent`)
-      .send({ password: "password", studentName: "Jo" });
-    id = response.body.studentID;
-    await supertest(app)
-      .post(`/api/addGrade`)
-      .send({ password: "password", studentID: id, courseName: "Science", courseGrade: 67 });
-  });
-
-  it("should get the transcript for an existing student", async () => {
-    response = await supertest(app)
-      .post(`/api/getTranscript`)
-      .send({ password: "password", studentID: id });
-    expect(response.status).toBe(200);
-    expect(response.body).toStrictEqual({
-      success: true,
-      transcript: {
-        student: { studentName: "Jo", studentID: id },
-        grades: [{ course: "Science", grade: 67 }],
-      },
+describe("emitTick", () => {
+  it("should call io.emit", () => {
+    const fn = vi.spyOn(io, "emit").mockImplementation(vi.fn());
+    emitTick();
+    expect(fn).toHaveBeenCalledExactlyOnceWith("tick", {
+      time: expect.any(String),
+      watchers: expect.any(Number),
     });
-  });
-
-  it("should report failing to get the transcript for a nonexistent student", async () => {
-    response = await supertest(app)
-      .post(`/api/getTranscript`)
-      .send({ password: "password", studentID: id + 100 + Math.floor(Math.random() * 100000) });
-    expect(response.status).toBe(200);
-    expect(response.body).toStrictEqual({ success: false });
-  });
-
-  it("should reject invalid payloads", async () => {
-    response = await supertest(app).post(`/api/getTranscript`).send({ password: "password" });
-    expect(response.status).toBe(400);
-  });
-
-  it("should reject invalid auth", async () => {
-    response = await supertest(app)
-      .post(`/api/getTranscript`)
-      .send({ password: "wrong", studentID: id });
-    expect(response.status).toBe(403);
   });
 });

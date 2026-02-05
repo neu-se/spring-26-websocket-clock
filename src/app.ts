@@ -8,14 +8,15 @@ app.use(express.json());
 app.use(cors());
 
 export const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: [/.*/] } });
+export const io = new Server(server, { cors: { origin: [/.*/] } });
 let latest = new Date();
 let count = 0;
 
-setInterval(() => {
+/** Performs a periodic action. Should be used in a setInterval context */
+export function emitTick() {
   latest = new Date();
   io.emit("tick", { time: latest.toISOString(), watchers: io.engine.clientsCount });
-}, 4000);
+}
 
 app.get("/api/status", (req, res) => {
   res.send({ currentTick: latest.toISOString(), currentCount: count });
