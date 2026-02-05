@@ -1,7 +1,6 @@
 /* eslint no-console: "off" */
 import { server, emitTick } from "./app.ts";
 
-
 setInterval(() => {
   emitTick();
 }, 4000);
