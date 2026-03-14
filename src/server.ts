@@ -1,3 +1,4 @@
+// Run this script to launch the server.
 /* eslint no-console: "off" */
 import { server, emitTick } from "./app.ts";
 
