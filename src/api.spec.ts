@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import supertest, { type Response } from "supertest";
 import { app, emitTick, io } from "./app.ts";
 let response: Response;
